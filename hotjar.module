@@ -1,18 +1,12 @@
 <?php
 /**
  * @file
- * Drupal Module: Hotjar.
+ * Backdrop Module: Hotjar.
  *
- * Adds the required Javascript to all your Drupal pages to allow
+ * Adds the required Javascript to all your Backdrop pages to allow
  * tracking by hotjar (https://www.hotjar.com/).
  */
 
-/**
- * Define default path exclusion list to remove tracking from admin pages.
- *
- * See http://drupal.org/node/34970 for more information.
- */
-define('HOTJAR_PAGES', "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*");
 
 /**
  * Implements hook_help().
@@ -43,7 +37,7 @@ function hotjar_permission() {
 function hotjar_menu() {
   $items['admin/config/system/hotjar'] = array(
     'title' => 'Hotjar',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('hotjar_admin_settings_form'),
     'access arguments' => array('administer hotjar'),
     'type' => MENU_NORMAL_ITEM,
@@ -54,25 +48,15 @@ function hotjar_menu() {
 }
 
 /**
- * Get Hotjar settings.
+ * Implements hook_config_info().
  */
-function hotjar_get_settings() {
-  $settings = variable_get('hotjar_settings', array());
-  $settings += array(
-    'hotjar_account' => NULL,
-    'hotjar_visibility_pages' => 0,
-    'hotjar_pages' => HOTJAR_PAGES,
-    'hotjar_visibility_roles' => 0,
-    'hotjar_roles' => array(),
+function hotjar_config_info() {
+  $config['hotjar.settings'] = array(
+    'label' => t('Hotjar settings'),
+    'group' => t('Configuration'),
   );
 
-  foreach ($settings as $name => $value) {
-    if (array_key_exists($name, $GLOBALS['conf'])) {
-      $settings[$name] = $GLOBALS['conf'][$name];
-    }
-  }
-
-  return $settings;
+  return $config;
 }
 
 /**
@@ -81,20 +65,21 @@ function hotjar_get_settings() {
  * Insert JavaScript to the <head> tag of the page.
  */
 function hotjar_page_build(&$page) {
-  $settings = hotjar_get_settings();
-  $id = $settings['hotjar_account'];
+  $config = config('hotjar.settings');
+
+  $id = $config->get('hotjar_account');
 
   if (
     !$id
-    || !_hotjar_check_status()
-    || !_hotjar_should_be_added()
-    || !_hotjar_check_user()
+     || !_hotjar_check_status()
+     || !_hotjar_should_be_added()
+     || !_hotjar_check_user()
   ) {
     return;
   }
 
   // Use escaped HotjarID.
-  $clean_id = drupal_json_encode($id);
+  $clean_id = backdrop_json_encode($id);
 
   // Quote from the Hotjar dashboard:
   // "The Tracking Code below should be placed in the <head> tag of
@@ -110,7 +95,7 @@ function hotjar_page_build(&$page) {
 })(window,document,'//static.hotjar.com/c/hotjar-','.js?sv=');
 HJ;
 
-  drupal_add_js($tracking_code, array(
+  backdrop_add_js($tracking_code, array(
     'type' => 'inline',
     'scope' => 'header',
     'weight' => -99,
@@ -122,27 +107,27 @@ HJ;
  * Check Hotjar code should be added.
  */
 function _hotjar_should_be_added() {
-  $page_match = &drupal_static(__FUNCTION__);
+  $page_match = &backdrop_static(__FUNCTION__);
   if (isset($page_match)) {
     return $page_match;
   }
 
-  $settings = hotjar_get_settings();
+  $config = config('hotjar.settings');
 
-  $visibility = $settings['hotjar_visibility_pages'];
-  $setting_pages = $settings['hotjar_pages'];
+  $visibility = $config->get('hotjar_visibility_pages');
+  $setting_pages = $config->get('hotjar_pages');
 
   if (empty($setting_pages)) {
     $page_match = TRUE;
     return $page_match;
   }
 
-  $pages = drupal_strtolower($setting_pages);
+  $pages = backdrop_strtolower($setting_pages);
   if ($visibility < 2) {
-    $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
-    $page_match = drupal_match_path($path, $pages);
+    $path = backdrop_strtolower(backdrop_get_path_alias($_GET['q']));
+    $page_match = backdrop_match_path($path, $pages);
     if ($path != $_GET['q']) {
-      $page_match = $page_match || drupal_match_path($_GET['q'], $pages);
+      $page_match = $page_match || backdrop_match_path($_GET['q'], $pages);
     }
 
     // When $visibility has a value of 0, the tracking code is displayed on
@@ -182,10 +167,10 @@ function _hotjar_check_roles($account = NULL) {
     $account = $GLOBALS['user'];
   }
 
-  $settings = hotjar_get_settings();
-  $visibility = $settings['hotjar_visibility_roles'];
+  $config = config('hotjar.settings');
+  $visibility = $config->get('hotjar_visibility_roles');
   $enabled = $visibility;
-  $roles = $settings['hotjar_roles'];
+  $roles = $config->get('hotjar_roles');
 
   $checked_roles = array_filter($roles);
   if (empty($checked_roles)) {
@@ -208,7 +193,7 @@ function _hotjar_check_roles($account = NULL) {
  */
 function _hotjar_check_status() {
   // Get page status code for visibility filtering.
-  $status = drupal_get_http_header('Status');
+  $status = backdrop_get_http_header('Status');
   $not_tracked_status_codes = array(
     '403 Forbidden',
     '404 Not Found',
