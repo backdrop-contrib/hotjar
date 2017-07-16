@@ -8,28 +8,42 @@
  * Implements hook_uninstall().
  */
 function hotjar_uninstall() {
-  variable_del('hotjar_settings');
+  config_clear('hotjar.settings', 'hotjar_settings');
+}
+
+// TODO The old hook_update_N functions cannot be applied to Backdrop.
+function hotjar_update_7001() { }
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function hotjar_update_last_removed() {
+  return 7001;
 }
 
 /**
- * Merge Hotjar variables.
+ * Implements hook_update_N().
  */
-function hotjar_update_7001() {
-  $variables = array(
-    'hotjar_account',
-    'hotjar_visibility_pages',
-    'hotjar_pages',
-    'hotjar_visibility_roles',
-    'hotjar_roles',
-  );
-  $variable = array();
-  foreach ($variables as $name) {
-    $variable[$name] = variable_get($name);
-  }
-  variable_set('hotjar_settings', $variable);
+function hotjar_update_1000() {
+  $config = config('hotjar .settings');
+  $config->set('hotjar_account', update_variable_get('hotjar_account', 'NULL'));
+  $config->set('hotjar_visibility_pages', update_variable_get('hotjar_visibility_pages', '0'));
+  $config->set('hotjar_pages', update_variable_get('hotjarhotjar_pages_settings', 'HOTJAR_PAGES'));
+  $config->set('hotjar_visibility_roles', update_variable_get('hotjar_visibility_roles', '0'));
+  $config->set('hotjar_roles', update_variable_get('hotjar_roles', array()));
 
-  // Delete old variables.
-  foreach ($variables as $name) {
-    variable_del($name);
-  }
+  $config->save();
+
+  update_variable_del('hotjar_account');
+  update_variable_del('hotjar_visibility_pages');
+  update_variable_del('hotjar_pages');
+  update_variable_del('hotjar_visibility_roles');
+  update_variable_del('hotjar_roles');
+}
+
+/**
+ * Implements hook_install().
+ */
+function hotjar_install() {
+
 }

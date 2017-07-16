@@ -1,0 +1,8 @@
+{
+    "_config_name": "hotjar.settings",
+    "hotjar_account": "NULL",
+    "hotjar_visibility_pages": "0",
+    "hotjar_pages": "admin\nadmin/*\nbatch\nnode/add*\nnode/*/*\nuser/*/*",
+    "hotjar_visibility_roles": "0",
+    "hotjar_roles": []
+}
